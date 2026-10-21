@@ -15,62 +15,54 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 using var host = builder.Build();
 using var scope = host.Services.CreateScope();
 var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
- 
+
 try
 {
     // 1
-    var students = await db.Students
-     .Include(s => s.Group)
-     .OrderBy(s => s.LastName)
-     .ToListAsync();
+    Console.Write("id студента: ");
+    int idUser = int.Parse(Console.ReadLine()!);
 
-    Console.WriteLine("\nвсе студенты: ");
-    foreach (var st in students)
+    bool studentExists = await db.Students.AnyAsync(s => s.Id == idUser);
+    if (studentExists == false)
     {
-        Console.WriteLine($"{st.FirstName} {st.LastName} - {st.Group.Name}");
+        Console.WriteLine("студент не найден");
+        return;
     }
+
+    var student = await db.Students
+    .Include(s => s.Group)
+    .FirstOrDefaultAsync(s => s.Id ==idUser);
 
     // 2
-    Console.WriteLine("\nдобавление студента\n");
-    var newStudent = new Student
-    {
-        FirstName = "Александр",
-        LastName = "Кузнецов",
-        Age = 22,
-        GroupId = 3
-    };
-    db.Students.Add(newStudent);
-    await db.SaveChangesAsync();
-
-    Console.WriteLine($"{newStudent.FirstName} {newStudent.LastName} - {newStudent.Group.Name}");
+    Console.WriteLine($"\nгруппа: {student.Group.Name} id группы: {student.Group.Id}\n");
 
     // 3
-    Console.WriteLine("\nизменение возраста\n");
-    var updateStudent = await db.Students
-    .FirstAsync(s => s.Id == 6);
+    var groups = await db.Groups.ToListAsync();
 
-    updateStudent.Age = 22;
-    await db.SaveChangesAsync();
+    Console.WriteLine("\nвсе доступные группы: ");
+    foreach (var gr in groups)
+    {
+        Console.WriteLine($"id: {gr.Id} название: {gr.Name}");
+    }
 
     // 4
-    Console.WriteLine("\nудаление студента\n");
-    var delStudent = await db.Students
-    .FirstAsync(s => s.Id == 9);
-
-    db.Students.Remove(delStudent);
-    await db.SaveChangesAsync();
+    Console.Write("id новой группы: ");
+    int idGroupUser = int.Parse(Console.ReadLine()!);
 
     // 5
-    var newStudentsBD = await db.Students
-     .Include(s => s.Group)
-     .OrderBy(s => s.LastName)
-     .ToListAsync();
-
-    Console.WriteLine("\nвсе студенты после обновления: ");
-    foreach (var st in newStudentsBD)
+    var groupExists = await db.Groups.AnyAsync(g => g.Id == idGroupUser);
+    if (groupExists == false)
     {
-        Console.WriteLine($"{st.FirstName} {st.LastName} - {st.Group.Name}");
+        Console.WriteLine("группа не найдена");
+        return;
     }
+
+    // 6
+    student.GroupId = idGroupUser;
+
+    // 7
+    await db.SaveChangesAsync();
+    Console.WriteLine($"Студент {student.Id} в группе: {student.Group.Name} id - {student.Group.Id}");
 }
 catch (Exception ex)
 {
